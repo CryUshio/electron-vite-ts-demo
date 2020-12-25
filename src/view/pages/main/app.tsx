@@ -1,24 +1,17 @@
-import { defineComponent, ref, withModifiers } from 'vue';
+import React, { Component } from 'react';
 
 import './app.less';
 
-export default defineComponent({
-  setup: () => {
-    const count = ref(0);
-
-    const inc = () => {
-      count.value++;
-    };
-
-    return () => (
+export default class Main extends Component {
+  render() {
+    return (
       <section>
         <header>main page</header>
-        <section onClick={withModifiers(inc, ['self'])}>
-          <p>This is a vue3.0 and vite test program, page name: main</p>
+        <section>
+          <p>This is a react and vite test program, page name: main</p>
           <p>Now it runs at electron.</p>
-          <p>{count}</p>
         </section>
       </section>
     );
-  },
-});
+  }
+}

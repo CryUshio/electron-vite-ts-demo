@@ -1,5 +1,6 @@
 import path from 'path';
 import { ServerConfig, ServerPlugin } from 'vite';
+import { configureServer, resolvers } from 'vite-plugin-react';
 import * as nunjucks from 'nunjucks';
 
 const { pages } = require('./utils.js');
@@ -10,7 +11,6 @@ const htmlPlugin: ServerPlugin = ({ app }) => {
     if (expectsHtml) {
       const baseMatch = ctx.path.match(/(?<=^\/)[\w\d.-]+/);
       const baseUrl = baseMatch ? baseMatch[0] : '';
-      // console.log(ctx.path, baseUrl);
 
       if (!(pages as Record<string, string>)[baseUrl]) {
         ctx.status = 404;
@@ -22,10 +22,9 @@ const htmlPlugin: ServerPlugin = ({ app }) => {
         path.join(__dirname, '../src/view/pages', baseUrl, '/index.html'),
         {
           development: true,
-          ts: path.join('/pages/', baseUrl, 'index.ts'),
+          ts: path.join('/pages/', baseUrl, 'index.tsx'),
         },
       );
-      // console.log('html', ctx.response);
     }
     await next();
   });
@@ -36,11 +35,16 @@ const assetsPlugin: ServerPlugin = ({ app }) => {
 };
 
 const config: ServerConfig = {
+  jsx: 'react',
   root: path.resolve(__dirname, '../src/view'),
   alias: {
     // '/': '/pages/main'
   },
-  configureServer: [assetsPlugin, htmlPlugin],
+  resolvers,
+  configureServer:
+    configureServer instanceof Array
+      ? [assetsPlugin, htmlPlugin].concat(configureServer)
+      : [assetsPlugin, htmlPlugin, configureServer],
 };
 
 export default config;

@@ -4,16 +4,19 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const WebpackBar = require('webpackbar');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const VueLoaderPlugin = require('vue-loader/lib/plugin-webpack5');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
 
 const { pages } = require('./utils');
 
 module.exports = {
   mode: 'production',
-  entry: pages,
+  entry: Object.entries(pages).reduce((o, [key, dirname]) => {
+    o[key] = path.join(dirname, 'index.tsx');
+    return o;
+  }, {}),
   output: {
     filename: '[name].[contenthash].js',
     path: path.resolve(__dirname, '../dist/render'),
@@ -28,22 +31,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
-        use: [
-          'cache-loader',
-          'babel-loader',
-          {
-            loader: 'ts-loader',
-            options: {
-              transpileOnly: true,
-              appendTsSuffixTo: ['\\.vue$'],
-            },
-          },
-        ],
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.jsx?$/,
+        test: /\.(t|j)sx?$/,
         use: ['cache-loader', 'babel-loader'],
         exclude: /node_modules/,
       },
@@ -143,9 +131,9 @@ module.exports = {
           minChunks: 1,
           reuseExistingChunk: true,
         },
-        vue: {
-          name: 'vue',
-          test: /[\\/]node_modules[\\/](vue|@vue)/,
+        react: {
+          name: 'react',
+          test: /[\\/]node_modules[\\/](react|react-dom)/,
           priority: 20,
           minChunks: 1,
           reuseExistingChunk: true,
@@ -176,9 +164,7 @@ module.exports = {
       filename: '[name].[contenthash].css',
       chunkFilename: '[id].[contenthash].css',
     }),
-    new VueLoaderPlugin(),
-    ...Object.entries(pages).map(([chunk, page]) => {
-      const dirname = path.dirname(page);
+    ...Object.entries(pages).map(([chunk, dirname]) => {
       return new HtmlWebpackPlugin({
         minify: false,
         filename: `${chunk}.html`,
@@ -186,6 +172,9 @@ module.exports = {
         chunks: [chunk],
         inject: true,
       });
+    }),
+    new CopyPlugin({
+      patterns: [{ from: path.join(__dirname, '../public/favicon.ico') }],
     }),
     new WebpackBar(),
     new FriendlyErrorsWebpackPlugin(),
