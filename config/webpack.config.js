@@ -7,13 +7,17 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin-webpack5');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
 
 const { pages } = require('./utils');
 
 module.exports = {
   mode: 'production',
-  entry: pages,
+  entry: Object.entries(pages).reduce((o, [key, dirname]) => {
+    o[key] = path.join(dirname, 'index.ts');
+    return o;
+  }, {}),
   output: {
     filename: '[name].[contenthash].js',
     path: path.resolve(__dirname, '../dist/render'),
@@ -177,8 +181,7 @@ module.exports = {
       chunkFilename: '[id].[contenthash].css',
     }),
     new VueLoaderPlugin(),
-    ...Object.entries(pages).map(([chunk, page]) => {
-      const dirname = path.dirname(page);
+    ...Object.entries(pages).map(([chunk, dirname]) => {
       return new HtmlWebpackPlugin({
         minify: false,
         filename: `${chunk}.html`,
@@ -186,6 +189,9 @@ module.exports = {
         chunks: [chunk],
         inject: true,
       });
+    }),
+    new CopyPlugin({
+      patterns: [{ from: path.join(__dirname, '../public/favicon.ico') }],
     }),
     new WebpackBar(),
     new FriendlyErrorsWebpackPlugin(),
