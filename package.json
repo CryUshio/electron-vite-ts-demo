@@ -61,11 +61,15 @@
   },
   "keywords": [
     "electron",
+    "vue",
     "vue3",
+    "react",
     "vite",
     "webpack",
     "ts",
     "tsx",
+    "jsx",
+    "multi",
     "multi-page"
   ],
   "author": "CryUshio",
