@@ -1,7 +1,7 @@
 {
-  "name": "electron-vue3-ts-demo",
+  "name": "electron-vite-ts-demo",
   "version": "1.0.0",
-  "description": "electron+vue3+vite+webpack+ts+tsx+multi-page build demo",
+  "description": "electron+vue3/react+vite+webpack+ts+tsx+multi-page build demo",
   "main": "dist/main.js",
   "scripts": {
     "test": "jest",
