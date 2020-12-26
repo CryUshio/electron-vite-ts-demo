@@ -10,6 +10,7 @@ electron+vue3/react+vite+webpack+ts+tsx+multi-page build demo
 - 分支 `react` 上使用的前端框架为 `react`
 
 # Usage
+可能需要全局安装 `npm-run-all`，`nodemon` 等支持命令行执行。
 ```
 npm i && npm run dev
 ```
