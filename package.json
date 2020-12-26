@@ -6,14 +6,14 @@
   "scripts": {
     "test": "jest",
     "clean": "rimraf release dist",
-    "start": "run-p render-dev electron-pre-dev",
-    "render-dev": "vite --config ./config/vite.config.ts",
-    "render-build": "webpack --config ./config/webpack.config.js",
+    "start": "run-p renderer-dev electron-pre-dev",
+    "renderer-dev": "vite --config ./config/vite.config.ts",
+    "renderer-build": "webpack --config ./config/webpack.config.js",
     "electron-pre-dev": "wait-on -d 1000 tcp:3000 && nodemon --exec 'npm run electron-dev'",
     "electron-dev": "tsc && electron .",
     "electron-build": "tsc",
     "generate-app": "electron-builder",
-    "release": "npm-run-all clean --parallel electron-build render-build --serial generate-app"
+    "release": "npm-run-all clean --parallel electron-build renderer-build --serial generate-app"
   },
   "build": {
     "productName": "electron-vue3-ts-demo",

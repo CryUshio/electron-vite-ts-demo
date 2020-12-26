@@ -16,12 +16,11 @@ function createWindow() {
   // and load the index.html of the app.
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:3000/main');
+    // Open the DevTools.
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    mainWindow.loadFile(path.join(__dirname, './render/main.html'));
+    mainWindow.loadFile(path.join(__dirname, './renderer/main.html'));
   }
-
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
 }
 
 // This method will be called when Electron has finished
