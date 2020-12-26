@@ -17,7 +17,7 @@ function createWindow() {
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:3000/main');
   } else {
-    mainWindow.loadFile(path.join(__dirname, './render/main.html'));
+    mainWindow.loadFile(path.join(__dirname, './renderer/main.html'));
   }
 
   // Open the DevTools.

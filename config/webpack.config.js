@@ -24,8 +24,7 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
     alias: {
-      vue: '@vue/runtime-dom',
-      '@': path.join(__dirname, '../src/view'),
+      '@': path.join(__dirname, '../src/renderer'),
     },
   },
   module: {
@@ -34,10 +33,6 @@ module.exports = {
         test: /\.(t|j)sx?$/,
         use: ['cache-loader', 'babel-loader'],
         exclude: /node_modules/,
-      },
-      {
-        test: /\.vue$/,
-        loader: 'vue-loader',
       },
       {
         test: /\.less$/,
@@ -96,7 +91,7 @@ module.exports = {
               preprocessor: (content, loaderContext) => {
                 let result;
                 try {
-                  nunjucks.configure(path.join(__dirname, '../src/view'));
+                  nunjucks.configure(path.join(__dirname, '../src/renderer'));
                   result = nunjucks.renderString(content, {
                     development: false,
                   });

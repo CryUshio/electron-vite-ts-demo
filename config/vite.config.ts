@@ -17,9 +17,9 @@ const htmlPlugin: ServerPlugin = ({ app }) => {
         return;
       }
 
-      nunjucks.configure(path.join(__dirname, '../src/view'));
+      nunjucks.configure(path.join(__dirname, '../src/renderer'));
       ctx.body = nunjucks.render(
-        path.join(__dirname, '../src/view/pages', baseUrl, '/index.html'),
+        path.join(__dirname, '../src/renderer/pages', baseUrl, '/index.html'),
         {
           development: true,
           ts: path.join('/pages/', baseUrl, 'index.tsx'),
@@ -36,7 +36,7 @@ const assetsPlugin: ServerPlugin = ({ app }) => {
 
 const config: ServerConfig = {
   jsx: 'react',
-  root: path.resolve(__dirname, '../src/view'),
+  root: path.resolve(__dirname, '../src/renderer'),
   alias: {
     // '/': '/pages/main'
   },
