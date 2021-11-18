@@ -1,4 +1,4 @@
-import { defineComponent } from "vue";
+import { defineComponent } from 'vue';
 
 import './app.less';
 
@@ -12,5 +12,5 @@ export default defineComponent({
         </section>
       </section>
     );
-  }
-})
+  },
+});

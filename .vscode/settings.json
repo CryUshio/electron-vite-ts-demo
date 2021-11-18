@@ -1,0 +1,6 @@
+{
+  "jumpToAliasFile.alias": {
+    "vue": "@vue/runtime-dom",
+    "@": "/Users/charryhuang/develop/my-projects/electron-vue3-ts-demo/src/view"
+  }
+}
