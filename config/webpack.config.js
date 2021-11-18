@@ -20,13 +20,13 @@ module.exports = {
   }, {}),
   output: {
     filename: '[name].[contenthash].js',
-    path: path.resolve(__dirname, '../dist/render'),
+    path: path.resolve(__dirname, '../dist/renderer'),
   },
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
     alias: {
       vue: '@vue/runtime-dom',
-      '@': path.join(__dirname, '../src/view'),
+      '@': path.join(__dirname, '../src/renderer'),
     },
   },
   module: {
@@ -112,7 +112,7 @@ module.exports = {
               preprocessor: (content, loaderContext) => {
                 let result;
                 try {
-                  nunjucks.configure(path.join(__dirname, '../src/view'));
+                  nunjucks.configure(path.join(__dirname, '../src/renderer'));
                   result = nunjucks.renderString(content, {
                     development: false,
                   });

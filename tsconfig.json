@@ -12,7 +12,7 @@
     "src/**/*.ts"
   ],
   "exclude": [
-    "src/view",
+    "src/renderer",
     "node_modules"
   ]
 }
