@@ -1,18 +1,34 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "noImplicitAny": true,
+    "target": "es6", // target 过高导致可选链没有被转义
+    "module": "esnext",
+    "strict": true,
+    "noImplicitThis": true,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "moduleResolution": "node",
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "sourceMap": true,
-    "outDir": "dist",
+    "allowJs": true,
+    "noImplicitAny": false,
     "baseUrl": ".",
-    "paths": {},
-    "skipLibCheck": true
+    "outDir": "./dist",
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["src/*"],
+    },
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/**/*.js",
+    "*.js"
   ],
-  "exclude": [
-    "src/renderer",
-    "node_modules"
-  ]
+  "exclude": ["node_modules", "babel.config.js"]
 }

@@ -1,92 +1,38 @@
+import path from 'path';
 import { app, BrowserWindow } from 'electron';
-import * as path from 'path';
+import ipcServer from './node/ipc';
+import { windows } from './common/windows';
+import { WindowNames } from './common/const';
+import wsServer from './node/ws';
 
 function createWindow() {
-  // Create the browser window.
+  console.log(process.env.NODE_ENV);
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     minWidth: 240,
     minHeight: 300,
     webPreferences: {
+      // contextIsolation: true,
       // 编译后后缀名为 js
-      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: false,
+      preload: path.join(__dirname, './preload.js'),
     },
   });
 
-  console.log(process.env.NODE_ENV);
+  windows.set(WindowNames.MAIN, mainWindow);
+
   // and load the index.html of the app.
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000/main');
+    mainWindow.loadURL('http://localhost:3000/pages/performance/index.html');
     // Open the DevTools.
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    mainWindow.webContents.openDevTools({ mode: 'bottom' });
   } else {
-    mainWindow.loadFile(path.join(__dirname, './renderer/main.html'));
+    mainWindow.loadFile(path.join(__dirname, './renderer/performance.html'));
   }
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools({ mode: 'detach' });
-
-  const ChildWindow = new BrowserWindow({
-    x: mainWindow.getBounds().x + 200,
-    y: mainWindow.getBounds().y,
-    width: 400,
-    height: 600,
-    autoHideMenuBar: true, //设置窗口菜单栏是否自动隐藏
-    resizable: false, // 用户是否可以手动调整窗口大小
-    parent: mainWindow, // 设置父窗口 remote.getCurrentWindow() 返回 BrowserWindow - 此网页所属的窗口
-    minimizable: false, //是否可以最小化
-    movable: false,
-    frame: false,
-    webPreferences: {
-      nodeIntegration: true,
-    },
-    hasShadow: false,
-  });
-  ChildWindow.loadURL('http://localhost:3000/main');
-  // ChildWindow.setAlwaysOnTop(true);
-  ChildWindow.show();
-
-  // setTimeout(() => {
-  //   ChildWindow.setBounds({ x: 0, y: 0, width: 400, height: 320 }, true);
-  // }, 3000);
-
-  let prevY = ChildWindow.getBounds().y;
-  mainWindow.on('will-resize', (e, newBounds, details) => {
-    console.info('skr: resize', newBounds, details);
-    const { x, y: badY, width, height } = newBounds;
-    const mainWindowBounds = mainWindow.getBounds();
-
-    // let y = mainWindowBounds.y;
-    // let h = mainWindowBounds.height;
-
-    // if (prevY !== mainWindowBounds.y) {
-    //   prevY = badY;
-    //   y = badY;
-    //   h = height;
-    // }
-
-    ChildWindow.setBounds({
-      x: x + 200,
-      y: badY,
-      width: mainWindowBounds.width - 200,
-      height,
-    });
-    // ChildWindow.setPosition(x + 200, y);
-    // ChildWindow.setSize(width - 200, height);
-  });
-
-  mainWindow.on('resized', () => {
-    console.info('skr: resized');
-  });
-
-  // mainWindow.on('will-move', (e, newBounds) => {
-  //   console.info('skr: move', newBounds);
-  //   // const { x, y, width, height } = newBounds;
-  //   // ChildWindow.setBounds({ x: x + 200, y, width: width - 200, height });
-  //   // ChildWindow.setPosition(x + 200, y);
-  //   // ChildWindow.setSize(width - 200, height);
-  // });
 }
 
 // This method will be called when Electron has finished
@@ -94,6 +40,10 @@ function createWindow() {
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
   createWindow();
+
+  /** 启动 ipcServer */
+  ipcServer();
+  wsServer();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

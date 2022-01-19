@@ -10,8 +10,8 @@
     "renderer-dev": "vite --config ./config/vite.config.ts",
     "renderer-build": "webpack --config ./config/webpack.config.js",
     "electron-pre-dev": "wait-on -d 1000 tcp:3000 && nodemon --exec 'npm run electron-dev'",
-    "electron-dev": "tsc && electron .",
-    "electron-build": "tsc",
+    "electron-dev": "tsc -p ./tsconfig.node.json && electron .",
+    "electron-build": "tsc -p ./tsconfig.node.json",
     "generate-app": "electron-builder",
     "release": "npm-run-all clean --parallel electron-build renderer-build --serial generate-app"
   },
@@ -80,14 +80,17 @@
   "homepage": "https://github.com/CryUshio/electron-vue3-ts-demo#readme",
   "devDependencies": {
     "@babel/preset-env": "^7.12.11",
+    "@rollup/plugin-commonjs": "^21.0.1",
     "@types/glob": "^7.1.3",
     "@types/nunjucks": "^3.1.3",
+    "@types/ws": "^8.2.2",
     "@typescript-eslint/eslint-plugin": "^4.11.0",
     "@typescript-eslint/parser": "^4.11.0",
-    "@vue/babel-plugin-jsx": "^1.0.0-rc.5",
-    "@vue/cli-plugin-babel": "^4.5.9",
-    "@vue/compiler-sfc": "^3.0.4",
-    "@vue/composition-api": "^1.0.0-beta.22",
+    "@vitejs/plugin-vue": "^1.10.2",
+    "@vue/babel-plugin-jsx": "^1.1.1",
+    "@vue/cli-plugin-babel": "^4.5.15",
+    "@vue/compiler-sfc": "^3.2.24",
+    "@vue/composition-api": "^1.4.1",
     "babel-loader": "^8.2.2",
     "babel-preset-vca-jsx": "^0.3.6",
     "cache-loader": "^4.1.0",
@@ -123,7 +126,7 @@
     "terser-webpack-plugin": "^5.0.3",
     "ts-loader": "^8.0.12",
     "typescript": "^4.1.3",
-    "vite": "^1.0.0-rc.13",
+    "vite": "^2.7.1",
     "vue-loader": "^15.9.6",
     "wait-on": "^5.2.0",
     "webpack": "^5.11.0",
@@ -131,6 +134,9 @@
     "webpackbar": "^5.0.0-3"
   },
   "dependencies": {
-    "vue": "^3.0.4"
+    "element-plus": "^1.2.0-beta.5",
+    "socket.io": "^4.4.0",
+    "socket.io-client": "^4.4.0",
+    "vue": "^3.2.24"
   }
 }
