@@ -24,11 +24,11 @@ function createWindow() {
 
   // and load the index.html of the app.
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000/pages/performance/index.html');
+    mainWindow.loadURL('http://localhost:3000/pages/main/index.html');
     // Open the DevTools.
     mainWindow.webContents.openDevTools({ mode: 'bottom' });
   } else {
-    mainWindow.loadFile(path.join(__dirname, './renderer/performance.html'));
+    mainWindow.loadFile(path.join(__dirname, './renderer/main.html'));
   }
 
   // Open the DevTools.
