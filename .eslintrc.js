@@ -13,5 +13,8 @@ module.exports = {
     quotes: [2, 'single'],
     '@typescript-eslint/no-var-requires': 0,
     '@typescript-eslint/ban-ts-comment': 1,
+    '@typescript-eslint/no-unused-vars': 1,
+    '@typescript-eslint/no-empty-function': 0,
+    'no-unused-vars': 0,
   },
 };

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es6", // target 过高导致可选链没有被转义
     "module": "esnext",
+    "target": "esnext",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": true,
+    "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitThis": true,
     "jsx": "preserve",

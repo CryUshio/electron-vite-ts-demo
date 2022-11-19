@@ -24,8 +24,8 @@ function createWindow() {
 
   // and load the index.html of the app.
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000/pages/main/index.html');
-    // Open the DevTools.
+    mainWindow.loadURL('http://localhost:3000/di-demo.html');
+    // Open the DevTools..
     mainWindow.webContents.openDevTools({ mode: 'bottom' });
   } else {
     mainWindow.loadFile(path.join(__dirname, './renderer/main.html'));
