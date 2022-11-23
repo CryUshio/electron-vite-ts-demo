@@ -3,17 +3,23 @@ import { IDisposable, Service } from '../../../../qq-di';
 import { ctr } from './container';
 import { Log } from './Log';
 
+function P(target, p) {
+  console.info('skr: IPC prop decorator');
+}
+
 @Service()
-export class Message implements IDisposable {
+export class IPC implements IDisposable {
   @ctr.LazyInject()
   private log!: Log;
 
   constructor() {
-    console.info('skr: Message ctor');
+    console.info('skr: IPC ctor');
   }
 
-  send() {
-    this.log.print('send msg');
+  invoke() {
+    console.info('skr: IPC invoke', this);
+
+    this.log.print('ipc invoke');
   }
 
   dispose(): void {}

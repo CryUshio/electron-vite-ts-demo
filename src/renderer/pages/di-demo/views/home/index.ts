@@ -2,9 +2,12 @@
 import { Container, decorate, inject, injectable } from 'inversify';
 import { v4 } from 'uuid';
 import { Vue } from 'vue-class-component';
-import { ctr } from '../../services/container';
+import { ctr, ServiceIdentifiers } from '../../services/container';
 import { Log } from '../../services/Log';
+import { IPC } from '../../services/Ipc';
 import { Message } from '../../services/Message';
+
+type Promisify<T extends object> = { [P in keyof T]: Promise<T[P]> };
 
 @ctr.Consumer()
 export default class Home extends Vue {
@@ -12,8 +15,11 @@ export default class Home extends Vue {
   // @inject(Log)
   // private log!: Log;
 
-  @ctr.LazyInject()
+  @ctr.LazyInject(ServiceIdentifiers.Message)
   private msgService!: Message;
+
+  @ctr.AsyncInject(ServiceIdentifiers.IPC)
+  private ipc!: Promisify<IPC>;
 
   // private get msgService() {
   //   return ctr.get(Message);
@@ -22,6 +28,13 @@ export default class Home extends Vue {
 
   public getSize() {
     this.msgService.send();
+    ctr.snapshot();
+  }
+
+  public async invoke() {
+    console.info('skr: invoke', this.ipc);
+
+    (await this.ipc.invoke)();
     ctr.snapshot();
   }
 

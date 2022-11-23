@@ -1,11 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { IDisposable } from './interfaces';
+
+export type Promisify<T, K extends keyof T> = { [P in K]: Promise<P> };
+
 export type Newable<T> = new (...args: any[]) => T;
 
-export type Service<T> = Newable<T>;
+export type Service<T extends IDisposable> = Newable<T>;
 
-export type DynamicService<T> = () => Service<T>;
+export type DynamicService<T extends IDisposable> = () => Service<T>;
 
-export type AsyncService<T> = () => Promise<Service<T>>;
+export type AsyncService<T extends IDisposable> = () => Promise<Service<T>>;
 
 export interface IConstructable<T> {
   new (...args: any[]): T;
@@ -14,7 +19,7 @@ export interface IConstructable<T> {
 
 export type ServiceContainerIdentifier = symbol | string;
 
-export type ServiceIdentifier<T = unknown> = ServiceContainerIdentifier | Service<T>;
+export type ServiceIdentifier = ServiceContainerIdentifier | Service<IDisposable>;
 
 export type MetadataDependencies = Set<ServiceContainerIdentifier>;
 
@@ -24,7 +29,7 @@ export interface ServiceInfo {
   keepAlive?: boolean;
 }
 
-export interface ServiceBindingTo<T> {
+export interface ServiceBindingTo<T extends IDisposable> {
   to(service: Service<T>): ServiceBindingOptions;
   toSelf(): ServiceBindingOptions;
   toDynamic(service: DynamicService<T>): ServiceBindingOptions;

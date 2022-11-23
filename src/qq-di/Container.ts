@@ -12,9 +12,11 @@ import {
   MetadataKeys,
   ServiceContainerIdentifier,
   ServiceBindingTo,
+  Promisify,
 } from './typings';
 import { getPropertyCacheMetadataKey } from './utils';
 import { Vue } from 'vue-class-component';
+import { IDisposable } from './interfaces';
 
 export class ServiceContainer {
   static isServiceContainerIdentifier(
@@ -38,9 +40,11 @@ export class ServiceContainer {
       new Container({ defaultScope: 'Singleton' });
   }
 
-  public bind<T>(serviceId: ServiceContainerIdentifier): Omit<ServiceBindingTo<T>, 'toSelf'>;
+  public bind<T extends IDisposable>(
+    serviceId: ServiceContainerIdentifier,
+  ): Omit<ServiceBindingTo<T>, 'toSelf'>;
 
-  public bind<T>(serviceId: Service<T>): Pick<ServiceBindingTo<T>, 'toSelf'>;
+  public bind<T extends IDisposable>(serviceId: Service<T>): Pick<ServiceBindingTo<T>, 'toSelf'>;
 
   /**
    * 绑定一个标识符
@@ -64,7 +68,7 @@ export class ServiceContainer {
     };
   }
 
-  public get<T>(serviceId: ServiceIdentifier) {
+  public get<T>(serviceId: ServiceIdentifier): T {
     const identifier = this.getIdentifier(serviceId);
 
     if (!identifier) {
@@ -109,7 +113,7 @@ export class ServiceContainer {
   public Consumer() {
     const dispose = this.dispose.bind(this);
 
-    return function (target: Service<Vue>) {
+    return function (target: typeof Vue) {
       console.info('skr: Consumer', target.name);
 
       const descriptor = Reflect.getOwnPropertyDescriptor(target.prototype, 'unmounted') || {
@@ -138,39 +142,7 @@ export class ServiceContainer {
    */
   public LazyInject(serviceId?: ServiceIdentifier) {
     return (target: object, property: string) => {
-      Reflect.defineProperty(target, property, {
-        get: () => {
-          /** 尝试从属性类型获取 serviceId */
-          const identifier = ServiceContainer.isServiceContainerIdentifier(serviceId)
-            ? serviceId
-            : this.getServiceIdentifier(target, property);
-
-          console.info('skr: LazyInject', identifier);
-
-          if (!identifier) {
-            throw new Error(
-              `No service identifier found. From '${this.getTargetObjectName(target)}.${property}'`,
-            );
-          }
-
-          /** 避免重复执行添加依赖逻辑 */
-          if (!Reflect.hasOwnMetadata(MetadataKeys.isInjected, target, property)) {
-            this.addDependency(identifier).to(target);
-
-            Reflect.defineMetadata(MetadataKeys.isInjected, true, target, property);
-          }
-
-          this.rebindService(identifier);
-
-          return this.container.get(identifier);
-        },
-      });
-      /** 保护属性不被修改 */
-      Reflect.defineProperty(target, property, {
-        writable: false,
-      });
-
-      return Object.getOwnPropertyDescriptor(target, property) as any;
+      return this.inject(target, property, serviceId);
     };
   }
 
@@ -181,11 +153,55 @@ export class ServiceContainer {
    * 懒加载的语法糖，注意异步依赖是一个 Promise
    */
   public AsyncInject(serviceId: ServiceIdentifier) {
-    return this.LazyInject(serviceId);
+    // return <T extends object, P extends keyof T>(target: T & Promisify<T, P>, property: P) => {
+    //   return this.inject(target, property as string, serviceId);
+    // };
+
+    return (target: object, property: string) => {
+      return this.inject(target, property, serviceId);
+    };
   }
 
   public snapshot() {
     console.info('skr: snapshot ', this.serviceInfos);
+  }
+
+  private inject<T extends object>(target: T, property: string, serviceId?: ServiceIdentifier) {
+    console.info('skr: inject', target, property);
+
+    Reflect.defineProperty(target, property, {
+      get: () => {
+        /** 尝试从属性类型获取 serviceId */
+        const identifier = ServiceContainer.isServiceContainerIdentifier(serviceId)
+          ? serviceId
+          : this.getServiceIdentifier(target, property);
+
+        console.info('skr: LazyInject', identifier);
+
+        if (!identifier) {
+          throw new Error(
+            `No service identifier found. From '${this.getTargetObjectName(target)}.${property}'`,
+          );
+        }
+
+        /** 避免重复执行添加依赖逻辑 */
+        if (!Reflect.hasOwnMetadata(MetadataKeys.isInjected, target, property)) {
+          this.addDependency(identifier).to(target);
+
+          Reflect.defineMetadata(MetadataKeys.isInjected, true, target, property);
+        }
+
+        this.rebindService(identifier);
+
+        return this.container.get(identifier);
+      },
+    });
+    /** 保护属性不被修改 */
+    Reflect.defineProperty(target, property, {
+      writable: false,
+    });
+
+    return Object.getOwnPropertyDescriptor(target, property) as any;
   }
 
   private to(serviceId: ServiceContainerIdentifier, dep: Service<any>) {
@@ -193,7 +209,7 @@ export class ServiceContainer {
     Reflect.defineMetadata(MetadataKeys.identifier, serviceId, dep);
     this.recordServiceInfo(serviceId, dep);
 
-    console.info('skr: bind', dep?.name);
+    console.info('skr: bind', dep?.name, serviceId);
 
     this.container.bind(serviceId).to(dep);
 
@@ -411,9 +427,10 @@ export class ServiceContainer {
 
     console.info('skr: unbind service ', serviceId);
 
-    const target = this.container.get<Service<any>>(serviceId);
+    const target = this.container.get<IDisposable>(serviceId);
 
     this.dispose(target);
+    target?.dispose?.();
     /** 删除实例 */
     this.container.unbind(serviceId);
   }

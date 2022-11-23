@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": true,
     "noImplicitAny": true,
     "sourceMap": true,
     "outDir": "dist",
