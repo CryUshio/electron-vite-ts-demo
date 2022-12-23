@@ -1,15 +1,16 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { inject } from 'inversify';
 import { IDisposable, Service } from '../../../../qq-di';
 import { ctr } from './container';
 import { Log } from './Log';
 
-@Service()
+@ctr.Service()
 export class Message implements IDisposable {
-  @ctr.LazyInject()
-  private log!: Log;
+  private log: Log;
 
-  constructor() {
-    console.info('skr: Message ctor');
+  constructor(@ctr.LazyInject() log: Log) {
+    this.log = log;
+    console.info('skr: Message ctor', log);
   }
 
   send() {

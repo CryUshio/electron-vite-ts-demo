@@ -44,8 +44,12 @@ export interface ServiceBindingOptions {
 
 export enum MetadataKeys {
   designType = 'design:type',
+  designParamTypes = 'design:paramtypes',
   isService = 'qq-di__is_a_service',
   isInjected = 'qq-di__is_injected',
   identifier = 'qq-di__identifier',
   dependencies = 'qq-di__deps',
+  arguments = 'qq-di__constructor_arguments',
 }
+
+export type ConstructorArgumentsMetadata = Record<string, ServiceContainerIdentifier>;

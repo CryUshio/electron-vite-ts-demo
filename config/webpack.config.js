@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const WebpackBar = require('webpackbar');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const VueLoaderPlugin = require('vue-loader/lib/plugin-webpack5');
+const { VueLoaderPlugin } = require('vue-loader');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
@@ -36,13 +36,13 @@ module.exports = {
         use: [
           'cache-loader',
           'babel-loader',
-          {
-            loader: 'ts-loader',
-            options: {
-              transpileOnly: true,
-              appendTsSuffixTo: ['\\.vue$'],
-            },
-          },
+          // {
+          //   loader: 'ts-loader',
+          //   options: {
+          //     transpileOnly: true,
+          //     appendTsSuffixTo: ['\\.vue$'],
+          //   },
+          // },
         ],
         exclude: /node_modules/,
       },
@@ -129,7 +129,7 @@ module.exports = {
     ],
   },
   optimization: {
-    minimize: true,
+    minimize: false,
     moduleIds: 'deterministic',
     runtimeChunk: 'single',
     splitChunks: {
@@ -157,14 +157,14 @@ module.exports = {
       },
     },
     minimizer: [
-      new TerserPlugin({
-        parallel: true,
-        terserOptions: {
-          compress: {
-            drop_console: true,
-          },
-        },
-      }),
+      // new TerserPlugin({
+      //   parallel: true,
+      //   terserOptions: {
+      //     compress: {
+      //       drop_console: true,
+      //     },
+      //   },
+      // }),
       new OptimizeCSSAssetsPlugin({
         cssProcessorOptions: {
           map: false,

@@ -6,6 +6,7 @@ import { ctr, ServiceIdentifiers } from '../../services/container';
 import { Log } from '../../services/Log';
 import { IPC } from '../../services/Ipc';
 import { Message } from '../../services/Message';
+import MockVueComp from './mock';
 
 type Promisify<T extends object> = { [P in keyof T]: Promise<T[P]> };
 
@@ -18,8 +19,8 @@ export default class Home extends Vue {
   @ctr.LazyInject(ServiceIdentifiers.Message)
   private msgService!: Message;
 
-  @ctr.AsyncInject(ServiceIdentifiers.IPC)
-  private ipc!: Promisify<IPC>;
+  @ctr.LazyInject(ServiceIdentifiers.IPC)
+  private ipc!: IPC;
 
   // private get msgService() {
   //   return ctr.get(Message);
@@ -34,12 +35,19 @@ export default class Home extends Vue {
   public async invoke() {
     console.info('skr: invoke', this.ipc);
 
-    (await this.ipc.invoke)();
+    // (await this.ipc.invoke)();
     ctr.snapshot();
   }
 
   public bind() {
     console.info('skr: bind');
+  }
+
+  public mounted() {
+    // const comp = new MockVueComp();
+
+    // comp.mounted();
+    // comp.unmounted();
   }
 
   public unmounted() {

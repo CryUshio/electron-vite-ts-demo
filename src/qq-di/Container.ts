@@ -1,7 +1,9 @@
+/* eslint-disable no-nested-ternary */
+/* eslint-disable max-params */
+/* eslint-disable no-dupe-class-members */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import 'reflect-metadata';
 import { Container, decorate, injectable } from 'inversify';
-import { asyncProxyWrapper, dynamicProxyWrapper } from './ServiceWrapper';
+import { dynamicProxyWrapper } from './ServiceWrapper';
 import {
   AsyncService,
   Service,
@@ -13,13 +15,14 @@ import {
   ServiceContainerIdentifier,
   ServiceBindingTo,
   Promisify,
+  ConstructorArgumentsMetadata,
+  IConstructable,
 } from './typings';
 import { getPropertyCacheMetadataKey } from './utils';
-import { Vue } from 'vue-class-component';
 import { IDisposable } from './interfaces';
 
 export class ServiceContainer {
-  static isServiceContainerIdentifier(
+  private static isServiceContainerIdentifier(
     serviceId: ServiceIdentifier | undefined,
   ): serviceId is ServiceContainerIdentifier {
     return typeof serviceId === 'string' || typeof serviceId === 'symbol';
@@ -51,13 +54,11 @@ export class ServiceContainer {
    * @param serviceId 服务唯一标识
    */
   public bind(serviceId: ServiceIdentifier) {
-    console.info('skr: bind');
-
     if (ServiceContainer.isServiceContainerIdentifier(serviceId)) {
       return {
         to: this.to.bind(this, serviceId),
         toDynamic: this.toDynamic.bind(this, serviceId),
-        toAsync: this.toAsync.bind(this, serviceId),
+        // toAsync: this.toAsync.bind(this, serviceId),
         toConstructor: this.toConstructor.bind(this, serviceId),
         toConstant: this.toConstant.bind(this, serviceId),
       };
@@ -69,6 +70,7 @@ export class ServiceContainer {
   }
 
   public get<T>(serviceId: ServiceIdentifier): T {
+    console.info('skr: serviceId', serviceId);
     const identifier = this.getIdentifier(serviceId);
 
     if (!identifier) {
@@ -78,10 +80,23 @@ export class ServiceContainer {
     const info = this.serviceInfos.get(identifier);
 
     if (info && info.retainCount < 1 && !info.keepAlive) {
-      throw new Error(`Service '${this.getTargetObjectName(info.service)}' now is inactive.`);
+      throw new Error(`Service '${identifier.toString()}' now is inactive.`);
     }
 
-    return this.container.get<T>(identifier);
+    const service = this.container.get<T>(identifier);
+
+    return service;
+  }
+
+  public isBound(serviceId: ServiceIdentifier): boolean {
+    console.info('skr: serviceId', serviceId);
+    const identifier = this.getIdentifier(serviceId);
+
+    if (!identifier) {
+      return false;
+    }
+
+    return this.container.isBound(identifier);
   }
 
   public createChild() {
@@ -95,13 +110,63 @@ export class ServiceContainer {
     const metadataDeps: MetadataDependencies =
       Reflect.getMetadata(MetadataKeys.dependencies, target) || new Set();
 
-    console.info('skr: dispose deps', target, metadataDeps);
+    console.info(
+      'skr: dispose deps',
+      target,
+      metadataDeps,
+      Reflect.getMetadata(MetadataKeys.dependencies, target.constructor),
+    );
 
     metadataDeps.forEach((serviceId) => {
       this.reduceRetainCount(serviceId);
     });
 
     // Reflect.deleteMetadata(MetadataKeys.dependencies, target);
+  }
+
+  /**
+   * 服务装饰器
+   * @type decorator
+   *
+   * 标记一个服务，并注入构造函数参数
+   */
+  public Service() {
+    return (target: IConstructable<any>) => {
+      Reflect.defineMetadata(MetadataKeys.isService, true, target);
+
+      const getService = (serviceId: ServiceContainerIdentifier) => {
+        return this.prepareInjectService(serviceId);
+      };
+
+      const buildingRelationships = (serviceId: ServiceContainerIdentifier, target: object) => {
+        this.buildingRelationships(target, serviceId);
+      };
+
+      function Wrapper(...params: any[]) {
+        const args: ConstructorArgumentsMetadata =
+          Reflect.getMetadata(MetadataKeys.arguments, target) || {};
+
+        Object.entries(args).forEach(([index, serviceId]) => {
+          const service = getService(serviceId);
+
+          params.splice(Number(index), 1, service);
+        });
+
+        const instance = new target(...params);
+
+        Object.entries(args).forEach(([index, serviceId]) => {
+          buildingRelationships(serviceId, instance);
+        });
+
+        return instance;
+      }
+
+      Object.defineProperty(Wrapper, 'name', { value: this.getTargetObjectName(target) });
+
+      console.info('skr: @Service', this.getTargetObjectName(Wrapper));
+
+      return Wrapper as unknown as IConstructable<any>;
+    };
   }
 
   /**
@@ -113,11 +178,11 @@ export class ServiceContainer {
   public Consumer() {
     const dispose = this.dispose.bind(this);
 
-    return function (target: typeof Vue) {
+    return function (target: Service<any>) {
       console.info('skr: Consumer', target.name);
 
       const descriptor = Reflect.getOwnPropertyDescriptor(target.prototype, 'unmounted') || {
-        value: function () {},
+        value() {},
       };
 
       const oriFn = descriptor.value;
@@ -141,8 +206,12 @@ export class ServiceContainer {
    * 懒加载
    */
   public LazyInject(serviceId?: ServiceIdentifier) {
-    return (target: object, property: string) => {
-      return this.inject(target, property, serviceId);
+    return (
+      target: object,
+      property: string | undefined,
+      indexOrPropertyDescriptor?: number | PropertyDescriptor,
+    ) => {
+      return this.inject(target, property, indexOrPropertyDescriptor, serviceId);
     };
   }
 
@@ -157,8 +226,12 @@ export class ServiceContainer {
     //   return this.inject(target, property as string, serviceId);
     // };
 
-    return (target: object, property: string) => {
-      return this.inject(target, property, serviceId);
+    return (
+      target: object,
+      property: string,
+      indexOrPropertyDescriptor?: number | PropertyDescriptor,
+    ) => {
+      return this.inject(target, property, indexOrPropertyDescriptor, serviceId);
     };
   }
 
@@ -166,34 +239,39 @@ export class ServiceContainer {
     console.info('skr: snapshot ', this.serviceInfos);
   }
 
-  private inject<T extends object>(target: T, property: string, serviceId?: ServiceIdentifier) {
-    console.info('skr: inject', target, property);
+  private inject(
+    target: object,
+    property: string | undefined,
+    indexOrPropertyDescriptor: number | PropertyDescriptor | undefined,
+    serviceId?: ServiceIdentifier,
+  ) {
+    console.info(
+      'skr: inject',
+      this.getTargetObjectName(target),
+      property,
+      indexOrPropertyDescriptor,
+    );
 
+    if (typeof indexOrPropertyDescriptor === 'number') {
+      if (property !== undefined) {
+        throw new Error('@LazyInject can only be used in property, constructor parameters.');
+      }
+
+      return this.injectParameter(target, undefined, indexOrPropertyDescriptor, serviceId);
+    }
+
+    return this.injectProperty(target, property!, serviceId);
+  }
+
+  private injectProperty(target: object, property: string, serviceId?: ServiceIdentifier) {
     Reflect.defineProperty(target, property, {
       get: () => {
-        /** 尝试从属性类型获取 serviceId */
-        const identifier = ServiceContainer.isServiceContainerIdentifier(serviceId)
-          ? serviceId
-          : this.getServiceIdentifier(target, property);
+        const identifier = this.getInjectIdentifier(target, property, undefined, serviceId);
+        const service = this.prepareInjectService(identifier);
 
-        console.info('skr: LazyInject', identifier);
+        this.buildingRelationships(target, identifier);
 
-        if (!identifier) {
-          throw new Error(
-            `No service identifier found. From '${this.getTargetObjectName(target)}.${property}'`,
-          );
-        }
-
-        /** 避免重复执行添加依赖逻辑 */
-        if (!Reflect.hasOwnMetadata(MetadataKeys.isInjected, target, property)) {
-          this.addDependency(identifier).to(target);
-
-          Reflect.defineMetadata(MetadataKeys.isInjected, true, target, property);
-        }
-
-        this.rebindService(identifier);
-
-        return this.container.get(identifier);
+        return service;
       },
     });
     /** 保护属性不被修改 */
@@ -202,6 +280,57 @@ export class ServiceContainer {
     });
 
     return Object.getOwnPropertyDescriptor(target, property) as any;
+  }
+
+  private injectParameter(
+    target: object,
+    property: undefined,
+    index: number,
+    serviceId?: ServiceIdentifier,
+  ) {
+    /** 尝试从属性类型获取 serviceId */
+    const identifier = this.getInjectIdentifier(target, property, index, serviceId);
+
+    const args: ConstructorArgumentsMetadata =
+      Reflect.getMetadata(MetadataKeys.arguments, target) || {};
+
+    /** 避免重复执行添加依赖逻辑 */
+    if (!Object.values(args).includes(identifier)) {
+      args[String(index)] = identifier;
+
+      Reflect.defineMetadata(MetadataKeys.arguments, args, target);
+    }
+
+    console.info(
+      'skr: injectParameter',
+      this.getTargetObjectName(target),
+      property,
+      index,
+      identifier,
+    );
+  }
+
+  /** 保证注入的依赖有被绑定到内部容器 */
+  private prepareInjectService(serviceId: ServiceContainerIdentifier) {
+    console.info('skr: prepareInjectService', serviceId);
+
+    this.rebindService(serviceId);
+
+    return this.container.get(serviceId);
+  }
+
+  /** 建立依赖关系 */
+  private buildingRelationships(target: object, serviceId: ServiceContainerIdentifier) {
+    const injected: ServiceContainerIdentifier[] =
+      Reflect.getMetadata(MetadataKeys.isInjected, target) || [];
+
+    /** 避免重复执行添加依赖逻辑 */
+    if (!injected.includes(serviceId)) {
+      this.addDependency(serviceId).to(target);
+      injected.push(serviceId);
+
+      Reflect.defineMetadata(MetadataKeys.isInjected, injected, target);
+    }
   }
 
   private to(serviceId: ServiceContainerIdentifier, dep: Service<any>) {
@@ -227,7 +356,7 @@ export class ServiceContainer {
    * @param service 返回类构造函数
    */
   private toDynamic(serviceId: ServiceContainerIdentifier, service: DynamicService<any>) {
-    const proxyWrapper = dynamicProxyWrapper(service);
+    const proxyWrapper = dynamicProxyWrapper(service, serviceId.toString());
 
     return this.to(serviceId, proxyWrapper);
   }
@@ -236,11 +365,11 @@ export class ServiceContainer {
    * 异步绑定单例
    * @param service 返回异步类构造函数
    */
-  private toAsync(serviceId: ServiceContainerIdentifier, service: AsyncService<any>) {
-    const proxyWrapper = asyncProxyWrapper(service);
+  // private toAsync(serviceId: ServiceContainerIdentifier, service: AsyncService<any>) {
+  //   const proxyWrapper = asyncProxyWrapper(service);
 
-    return this.to(serviceId, proxyWrapper);
-  }
+  //   return this.to(serviceId, proxyWrapper);
+  // }
 
   /** 绑定多实例构造器 */
   private toConstructor(serviceId: ServiceContainerIdentifier, value: Service<any>) {
@@ -295,21 +424,57 @@ export class ServiceContainer {
     );
   }
 
-  private getTargetObjectName(target: any) {
-    return target?.constructor?.name || 'anonymous';
+  private getTargetObjectName(serviceId: any) {
+    return ServiceContainer.isServiceContainerIdentifier(serviceId)
+      ? serviceId
+      : serviceId?.name ||
+          serviceId?.constructor?.name ||
+          serviceId?.constructor?.prototype?.name ||
+          'anonymous';
   }
 
+  /** 获取指定 id 的唯一服务 id */
   private getIdentifier(serviceId: ServiceIdentifier) {
     return ServiceContainer.isServiceContainerIdentifier(serviceId)
       ? serviceId
       : this.getServiceIdentifier(serviceId);
   }
 
-  private getServiceIdentifier(target: object, property?: string | symbol) {
-    /** 尝试从属性类型获取 serviceId */
+  /** 获取 inject 装饰器装饰的属性对应的服务 id */
+  private getInjectIdentifier(
+    target: object,
+    property?: string | symbol,
+    index?: number | PropertyDescriptor,
+    serviceId?: ServiceIdentifier,
+  ) {
+    const identifier =
+      serviceId !== undefined
+        ? this.getIdentifier(serviceId)
+        : this.getServiceIdentifier(target, property, index);
+
+    if (!identifier) {
+      throw new Error(
+        `No service identifier found. From '${this.getTargetObjectName(target)}.${String(
+          property,
+        )}'`,
+      );
+    }
+    return identifier;
+  }
+
+  private getServiceIdentifier(
+    target: object,
+    property?: string | symbol,
+    index?: number | PropertyDescriptor,
+  ) {
+    /** 尝试从类的属性类型获取 serviceId，即原始构造函数 */
     const Service = property
-      ? Reflect.getMetadata(MetadataKeys.designType, target, property)
-      : Reflect.getMetadata(MetadataKeys.designType, target);
+      ? /** 属性依赖 */
+        Reflect.getMetadata(MetadataKeys.designType, target, property)
+      : typeof index === 'number'
+      ? /** 构造函数参数依赖 */
+        Reflect.getMetadata(MetadataKeys.designParamTypes, target)[index]
+      : target;
     const metadataId: ServiceContainerIdentifier | undefined =
       typeof Service === 'object' || typeof Service === 'function'
         ? Reflect.getMetadata(MetadataKeys.identifier, Service)
@@ -339,7 +504,7 @@ export class ServiceContainer {
         const metadataDeps: MetadataDependencies =
           Reflect.getMetadata(MetadataKeys.dependencies, target) || new Set();
 
-        console.info('skr: add dep target', target, serviceId);
+        console.info('skr: add dep %s to %s', serviceId, this.getTargetObjectName(target));
 
         metadataDeps.add(serviceId);
 
@@ -372,6 +537,7 @@ export class ServiceContainer {
 
     if (info) {
       const { retainCount = 0 } = info;
+
       this.updateServiceInfo(serviceId, { retainCount: retainCount + 1 });
 
       return;
